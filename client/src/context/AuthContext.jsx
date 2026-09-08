@@ -1,40 +1,46 @@
-import { createContext, useContext, useState } from 'react';
-import api from '../api/axios';
+import { createContext, useContext, useEffect, useState } from 'react';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
+  const [user, setUser] = useState(null);
+  const [initializing, setInitializing] = useState(true);
+
+  useEffect(() => {
     const stored = localStorage.getItem('user');
-    return stored ? JSON.parse(stored) : null;
-  });
+    const token = localStorage.getItem('token');
+    if (stored && token) {
+      try {
+        setUser(JSON.parse(stored));
+      } catch {
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+      }
+    }
+    setInitializing(false);
+  }, []);
 
-  const login = async (email, password) => {
-    const res = await api.post('/auth/login', { email, password });
-    localStorage.setItem('token', res.data.token);
-    localStorage.setItem('user', JSON.stringify(res.data.user));
-    setUser(res.data.user);
-    return res.data.user;
-  };
-
-  const register = async (name, email, password) => {
-    // role is intentionally not sent - the backend always creates 'user' accounts
-    await api.post('/auth/register', { name, email, password });
+  const login = (userData, token) => {
+    localStorage.setItem('user', JSON.stringify(userData));
+    localStorage.setItem('token', token);
+    setUser(userData);
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, initializing, isAdmin: user?.role === 'admin' }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
 export function useAuth() {
-  return useContext(AuthContext);
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
 }

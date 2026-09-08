@@ -1,120 +1,111 @@
-* {
-  box-sizing: border-box;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  color-scheme: dark;
 }
 
 body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: #0f1117;
-  color: #f0f0f0;
+  background-color: #0a0c10;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(231, 179, 62, 0.08), transparent),
+    radial-gradient(ellipse 60% 40% at 90% 10%, rgba(178, 58, 46, 0.06), transparent);
+  color: #edeae1;
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
 }
 
-a {
-  color: inherit;
+::selection {
+  background: #e7b33e;
+  color: #0a0c10;
 }
 
-.container {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 24px 16px;
+/* Custom thin scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #20242e;
+  border-radius: 999px;
+  border: 2px solid #0a0c10;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2c313d;
 }
 
-.navbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 24px;
-  background: #171923;
-  border-bottom: 1px solid #2a2d3a;
+/* Visible keyboard focus everywhere */
+:focus-visible {
+  outline: 2px solid #e7b33e;
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
-.navbar a {
-  text-decoration: none;
-  margin-right: 16px;
-  font-weight: 500;
+/* Sprocket-hole strip: a recurring structural motif from film stock,
+   used along the top/bottom of the hero and ticket-style cards. */
+.sprocket-strip {
+  background-image: radial-gradient(circle, #0a0c10 2.5px, transparent 2.6px);
+  background-size: 22px 100%;
+  background-repeat: repeat-x;
+  background-position: center;
+  height: 10px;
 }
 
-.card {
-  background: #1a1d29;
-  border: 1px solid #2a2d3a;
-  border-radius: 10px;
-  padding: 18px;
-  margin-bottom: 14px;
+.film-frame {
+  position: relative;
+}
+.film-frame::before,
+.film-frame::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background-image: radial-gradient(circle, rgba(237, 234, 225, 0.14) 2px, transparent 2.2px);
+  background-size: 20px 100%;
+  background-repeat: repeat-x;
+  background-position: center;
+}
+.film-frame::before {
+  top: 0;
+}
+.film-frame::after {
+  bottom: 0;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 16px;
+/* Ticket stub notch, used on booking cards */
+.ticket-notch {
+  position: relative;
+}
+.ticket-notch::before,
+.ticket-notch::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background: #0a0c10;
+  border-radius: 999px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.ticket-notch::before {
+  left: -9px;
+}
+.ticket-notch::after {
+  right: -9px;
 }
 
-input, select, button {
-  font-size: 15px;
-  padding: 9px 12px;
-  border-radius: 6px;
-  border: 1px solid #2a2d3a;
-  background: #12141d;
-  color: #f0f0f0;
-}
-
-button {
-  cursor: pointer;
-  background: #4f7cff;
-  border: none;
-  font-weight: 600;
-}
-
-button:hover {
-  background: #3d68f0;
-}
-
-button.secondary {
-  background: #2a2d3a;
-}
-
-button.danger {
-  background: #d64545;
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-width: 380px;
-}
-
-.error {
-  color: #ff6b6b;
-  font-size: 14px;
-}
-
-.tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
-}
-
-.tabs button {
-  background: #2a2d3a;
-}
-
-.tabs button.active {
-  background: #4f7cff;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th, td {
-  text-align: left;
-  padding: 8px;
-  border-bottom: 1px solid #2a2d3a;
-  font-size: 14px;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
