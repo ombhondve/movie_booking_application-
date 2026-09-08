@@ -6,7 +6,6 @@ export default function Register() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('user');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -28,7 +27,7 @@ export default function Register() {
 
     setLoading(true);
     try {
-      await register(name, email, password, role);
+      await register(name, email, password);
       setSuccess(true);
       setTimeout(() => navigate('/login'), 1000);
     } catch (err) {
@@ -59,10 +58,6 @@ export default function Register() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <select value={role} onChange={(e) => setRole(e.target.value)}>
-          <option value="user">User</option>
-          <option value="admin">Admin</option>
-        </select>
         {error && <p className="error">{error}</p>}
         {success && <p style={{ color: '#4ade80' }}>Registered! Redirecting to login...</p>}
         <button type="submit" disabled={loading}>
@@ -71,6 +66,9 @@ export default function Register() {
       </form>
       <p style={{ marginTop: 12 }}>
         Already have an account? <Link to="/login">Login</Link>
+      </p>
+      <p style={{ marginTop: 4, fontSize: 13, opacity: 0.6 }}>
+        Note: new accounts are always regular users. The admin account is created automatically by the server on startup from ADMIN_EMAIL / ADMIN_PASSWORD in .env.
       </p>
     </div>
   );

@@ -17,8 +17,9 @@ export function AuthProvider({ children }) {
     return res.data.user;
   };
 
-  const register = async (name, email, password, role) => {
-    await api.post('/auth/register', { name, email, password, role });
+  const register = async (name, email, password) => {
+    // role is intentionally not sent - the backend always creates 'user' accounts
+    await api.post('/auth/register', { name, email, password });
   };
 
   const logout = () => {

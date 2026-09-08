@@ -1,21 +1,24 @@
 # Movie Booking Application
 
-Full-stack MERN movie booking system with:
+Full-stack MERN movie booking system with role-based access (Admin / User), CRUD management for movies and shows, and seat booking with overbooking protection.
 
-- User registration and login
-- Movie browsing and show listing
-- Seat booking with overbooking protection
-- User booking history
-- Admin dashboards for movies, shows, and all bookings
+## Features
+
+- User registration and login (JWT-based auth, passwords hashed with bcrypt)
+- Movie browsing and show listings (public)
+- Seat booking with atomic overbooking protection
+- Users can view their own booking history
+- Admin dashboard: add/edit/delete movies, create/manage shows, view all bookings across all users
+- Form validation with loading and error states throughout
 
 ## Project Structure
 
-- `client/` React frontend
-- `server/` Express and MongoDB backend
+- `server/` — Express + MongoDB (Mongoose) REST API
+- `client/` — React frontend (Vite)
 
 ## Setup
 
-1. Install dependencies in both folders:
+### 1. Install dependencies
 
 ```bash
 cd server
@@ -24,56 +27,59 @@ cd ../client
 npm install
 ```
 
-2. Create environment files:
+### 2. Configure environment variables
 
-- `server/.env`
-- `client/.env`
+**`server/.env`** (copy from `server/.env.example`):
 
-Use the example files in the repo as a guide.
+```env
+PORT=5000
+MONGO_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/movieBookingDB?appName=MovieBookingDB
+JWT_SECRET=<a long random string>
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=<choose a password>
+```
 
-3. Start MongoDB locally or provide a MongoDB Atlas connection string.
+Use a free [MongoDB Atlas](https://mongodb.com/cloud/atlas) cluster for `MONGO_URI` — no local MongoDB install needed.
 
-4. Run the backend:
+`ADMIN_EMAIL` / `ADMIN_PASSWORD` are used **once, automatically, on server startup** by `server/createAdmin.js` to seed the one admin account for this project. There is no admin signup flow — self-registration through the app always creates a regular `user` account. To log in as admin, use these exact credentials.
+
+**`client/.env`** (copy from `client/.env.example`):
+
+```env
+VITE_API_URL=http://localhost:5000/api
+```
+
+### 3. Run the backend
 
 ```bash
 cd server
 npm run dev
 ```
 
-5. Run the frontend:
+You should see `MongoDB connected` and either `Admin created successfully!` (first run) or `Admin account already exists.` (subsequent runs), followed by `Server running on port 5000`.
+
+### 4. Run the frontend
 
 ```bash
 cd client
 npm run dev
 ```
 
-## Environment Variables
+Opens at `http://localhost:5173`.
 
-### `server/.env`
+## Using the app
 
-```env
-PORT=5000
-MONGO_URI=mongodb://127.0.0.1:27017/movie_booking
-JWT_SECRET=replace_with_a_long_random_secret
-```
+1. Log in as admin using the `ADMIN_EMAIL` / `ADMIN_PASSWORD` from `server/.env`.
+2. Add a movie, then add a show for that movie (date, time, theatre, total seats).
+3. Register a regular user account, log in as that user.
+4. Browse movies → select a show → pick a seat count → confirm booking.
+5. Check "My Bookings" as the user, and the "All Bookings" tab as the admin.
 
-### `client/.env`
+## API Overview
 
-```env
-VITE_API_URL=http://localhost:5000/api
-```
+- `POST /api/auth/register`, `POST /api/auth/login`
+- `GET /api/movies`, `POST/PUT/DELETE /api/movies/:id` (admin-only for writes)
+- `GET /api/shows`, `POST/PUT/DELETE /api/shows/:id` (admin-only for writes)
+- `POST /api/bookings`, `GET /api/bookings/mine`, `GET /api/bookings/all` (admin-only)
 
-## Features
-
-- Admin can create, update, and delete movies
-- Admin can create, update, and delete shows
-- Admin can review all bookings
-- Users can browse movies, view shows, and book seats
-- Users can view their own bookings
-- Passwords are hashed with bcrypt
-- Seat booking prevents overselling
-
-## Notes
-
-- To test admin features, register a user with the `admin` role from the backend during local development.
-- The backend exposes REST endpoints under `/api/auth`, `/api/movies`, `/api/shows`, and `/api/bookings`.
+Overbooking is prevented with an atomic `findOneAndUpdate` (`availableSeats: { $gte: seatsBooked }` + `$inc`), so concurrent bookings cannot oversell seats.
