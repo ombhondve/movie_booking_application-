@@ -12,7 +12,7 @@ export default function MyBookings() {
       setLoading(true);
       try {
         const res = await api.get('/bookings/mine');
-        setBookings(res.data); // each has populated .show.movie
+        setBookings(res.data);
       } catch (err) {
         setError('Could not load your bookings');
       } finally {
@@ -35,7 +35,7 @@ export default function MyBookings() {
           <div key={b._id} className="card booking-item">
             <h3>{b.show?.movie?.title}</h3>
             <p className="muted">
-              {b.show?.date} · {b.show?.time} · {b.show?.theatre}
+              {b.show?.date} | {b.show?.time} | {b.show?.theatre}
             </p>
             <p>Seats booked: {b.seatsBooked}</p>
             <p className={`status status-${b.status}`}>{b.status}</p>

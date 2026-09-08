@@ -1,4 +1,3 @@
-
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -14,7 +13,7 @@ export default function Navbar() {
   return (
     <nav className="navbar">
       <Link to="/movies" className="brand">
-        🎬 Movie Booking
+        Movie Booking
       </Link>
       <div className="nav-links">
         <Link to="/movies">Movies</Link>

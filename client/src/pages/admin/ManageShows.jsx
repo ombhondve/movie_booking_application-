@@ -39,9 +39,9 @@ export default function ManageShows() {
     setError('');
     try {
       const res = await api.post('/shows', {
-        movie: form.movie,       // Movie's _id
-        date: form.date,         // e.g. "2026-09-10"
-        time: form.time,         // e.g. "18:30"
+        movie: form.movie,
+        date: form.date,
+        time: form.time,
         theatre: form.theatre,
         totalSeats: Number(form.totalSeats),
       });
@@ -171,7 +171,7 @@ export default function ManageShows() {
             <div>
               <strong>{show.movie?.title || 'Unknown movie'}</strong>
               <p className="muted">
-                {show.date} · {show.time} · {show.theatre}
+                {show.date} | {show.time} | {show.theatre}
               </p>
               <p className="muted">
                 {show.availableSeats} / {show.totalSeats} seats available

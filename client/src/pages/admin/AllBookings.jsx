@@ -12,7 +12,7 @@ export default function AllBookings() {
       setLoading(true);
       try {
         const res = await api.get('/bookings/all');
-        setBookings(res.data); // each has populated .user and .show.movie
+        setBookings(res.data);
       } catch (err) {
         setError('Could not load bookings');
       } finally {
@@ -50,7 +50,7 @@ export default function AllBookings() {
                 </td>
                 <td>{b.show?.movie?.title}</td>
                 <td>
-                  {b.show?.date} {b.show?.time} · {b.show?.theatre}
+                  {b.show?.date} {b.show?.time} | {b.show?.theatre}
                 </td>
                 <td>{b.seatsBooked}</td>
                 <td className={`status status-${b.status}`}>{b.status}</td>

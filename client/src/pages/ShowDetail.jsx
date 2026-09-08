@@ -56,7 +56,6 @@ export default function ShowDetail() {
         seatsBooked: Number(seatCount),
       });
       setBookSuccess('Booking confirmed!');
-      // Reflect the seats we just took locally without a full refetch
       setShows((prev) =>
         prev.map((s) =>
           s._id === selectedShowId
@@ -66,7 +65,6 @@ export default function ShowDetail() {
       );
       setTimeout(() => navigate('/my-bookings'), 800);
     } catch (err) {
-      // e.g. "Not enough seats available. Only 3 left."
       setBookError(err.response?.data?.message || 'Booking failed');
     } finally {
       setBooking(false);
@@ -80,11 +78,11 @@ export default function ShowDetail() {
   return (
     <div className="page">
       <Link to="/movies" className="back-link">
-        ← Back to movies
+        Back to movies
       </Link>
       <h2>{movie.title}</h2>
       <p className="muted">
-        {movie.genre} · {movie.language} · {movie.duration} min
+        {movie.genre} | {movie.language} | {movie.duration} min
       </p>
       {movie.description && <p>{movie.description}</p>}
 
@@ -103,7 +101,7 @@ export default function ShowDetail() {
             }}
             disabled={show.availableSeats <= 0}
           >
-            <div>{show.date} · {show.time}</div>
+            <div>{show.date} | {show.time}</div>
             <div className="muted">{show.theatre}</div>
             <div className="muted">
               {show.availableSeats > 0 ? `${show.availableSeats} seats left` : 'Sold out'}
@@ -116,7 +114,7 @@ export default function ShowDetail() {
         <form className="card booking-form" onSubmit={handleBookSeats}>
           <h3>Book Seats</h3>
           <p className="muted">
-            {movie.title} — {selectedShow.date} {selectedShow.time} at {selectedShow.theatre}
+            {movie.title} - {selectedShow.date} {selectedShow.time} at {selectedShow.theatre}
           </p>
           {bookError && <p className="error">{bookError}</p>}
           {bookSuccess && <p className="success">{bookSuccess}</p>}

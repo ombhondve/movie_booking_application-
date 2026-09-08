@@ -152,7 +152,7 @@ export default function ManageMovies() {
             <div>
               <strong>{movie.title}</strong>
               <p className="muted">
-                {movie.genre} · {movie.language} · {movie.duration} min
+                {movie.genre} | {movie.language} | {movie.duration} min
               </p>
             </div>
             <div className="form-actions">
