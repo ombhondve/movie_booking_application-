@@ -1,63 +1,59 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import api from '../api/axios.js';
-import { useAuth } from '../context/AuthContext.jsx';
+import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
   const navigate = useNavigate();
-  const { setUser } = useAuth();
 
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+
+    if (!email || !password) {
+      setError('Email and password are required');
+      return;
+    }
+
+    setLoading(true);
     try {
-      const res = await api.post('/auth/login', { email, password });
-      localStorage.setItem('token', res.data.token);
-      localStorage.setItem('user', JSON.stringify(res.data.user));
-      setUser(res.data.user); // from AuthContext
-      navigate(res.data.user.role === 'admin' ? '/admin' : '/movies');
+      const user = await login(email, password);
+      navigate(user.role === 'admin' ? '/admin' : '/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid credentials');
+      setError(err.response?.data?.message || 'Login failed');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="auth-page">
-      <form className="card auth-form" onSubmit={handleLogin}>
-        <h2>Login</h2>
+    <div className="container">
+      <h2>Login</h2>
+      <form onSubmit={handleSubmit}>
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
         {error && <p className="error">{error}</p>}
-        <label>
-          Email
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </label>
-        <label>
-          Password
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </label>
-        <button className="btn" type="submit" disabled={loading}>
+        <button type="submit" disabled={loading}>
           {loading ? 'Logging in...' : 'Login'}
         </button>
-        <p className="muted">
-          No account? <Link to="/register">Register here</Link>
-        </p>
       </form>
+      <p style={{ marginTop: 12 }}>
+        No account? <Link to="/register">Register</Link>
+      </p>
     </div>
   );
 }

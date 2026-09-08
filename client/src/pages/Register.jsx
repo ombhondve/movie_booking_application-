@@ -1,28 +1,36 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import api from '../api/axios.js';
+import { useAuth } from '../context/AuthContext';
 
 export default function Register() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [role, setRole] = useState('user');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { register } = useAuth();
   const navigate = useNavigate();
 
-  const handleRegister = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+
+    if (!name || !email || !password) {
+      setError('All fields are required');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    setLoading(true);
     try {
-      const res = await api.post('/auth/register', {
-        name,
-        email,
-        password,
-        // role: "admin" // only include this while testing admin features locally
-      });
-      console.log(res.data.message); // "User registered successfully"
-      navigate('/login');
+      await register(name, email, password, role);
+      setSuccess(true);
+      setTimeout(() => navigate('/login'), 1000);
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');
     } finally {
@@ -31,40 +39,39 @@ export default function Register() {
   };
 
   return (
-    <div className="auth-page">
-      <form className="card auth-form" onSubmit={handleRegister}>
-        <h2>Register</h2>
+    <div className="container">
+      <h2>Register</h2>
+      <form onSubmit={handleSubmit}>
+        <input
+          placeholder="Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <input
+          type="password"
+          placeholder="Password (min 6 chars)"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <select value={role} onChange={(e) => setRole(e.target.value)}>
+          <option value="user">User</option>
+          <option value="admin">Admin</option>
+        </select>
         {error && <p className="error">{error}</p>}
-        <label>
-          Name
-          <input value={name} onChange={(e) => setName(e.target.value)} required />
-        </label>
-        <label>
-          Email
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </label>
-        <label>
-          Password
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={6}
-          />
-        </label>
-        <button className="btn" type="submit" disabled={loading}>
-          {loading ? 'Creating account...' : 'Register'}
+        {success && <p style={{ color: '#4ade80' }}>Registered! Redirecting to login...</p>}
+        <button type="submit" disabled={loading}>
+          {loading ? 'Registering...' : 'Register'}
         </button>
-        <p className="muted">
-          Already have an account? <Link to="/login">Login here</Link>
-        </p>
       </form>
+      <p style={{ marginTop: 12 }}>
+        Already have an account? <Link to="/login">Login</Link>
+      </p>
     </div>
   );
 }

@@ -1,68 +1,48 @@
 import { useEffect, useState } from 'react';
-import api from '../../api/axios.js';
-import LoadingSpinner from '../../components/LoadingSpinner.jsx';
+import api from '../../api/axios';
 
 const emptyForm = { title: '', genre: '', duration: '', language: '', description: '' };
 
 export default function ManageMovies() {
   const [movies, setMovies] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  const fetchMovies = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/movies');
-      setMovies(res.data);
-    } catch (err) {
-      setError('Could not load movies');
-    } finally {
-      setLoading(false);
-    }
+  const loadMovies = () => {
+    api.get('/movies').then((res) => setMovies(res.data)).catch(() => setError('Failed to load movies'));
   };
 
   useEffect(() => {
-    fetchMovies();
+    loadMovies();
+    setLoading(false);
   }, []);
 
-  const resetForm = () => {
-    setForm(emptyForm);
-    setEditingId(null);
-  };
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  const handleAddMovie = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+    if (!form.title || !form.genre || !form.duration || !form.language) {
+      setError('Title, genre, duration, and language are required');
+      return;
+    }
     try {
-      const payload = { ...form, duration: Number(form.duration) };
-      const res = await api.post('/movies', payload);
-      setMovies((prev) => [res.data, ...prev]);
-      resetForm();
+      if (editingId) {
+        await api.put(`/movies/${editingId}`, form);
+      } else {
+        await api.post('/movies', form);
+      }
+      setForm(emptyForm);
+      setEditingId(null);
+      loadMovies();
     } catch (err) {
-      setError(err.response?.data?.message || 'Could not add movie');
-    } finally {
-      setLoading(false);
+      setError(err.response?.data?.message || 'Save failed');
     }
   };
 
-  const handleUpdateMovie = async (e) => {
-    e.preventDefault();
-    setError('');
-    try {
-      const payload = { ...form, duration: Number(form.duration) };
-      const res = await api.put(`/movies/${editingId}`, payload);
-      setMovies((prev) => prev.map((m) => (m._id === editingId ? res.data : m)));
-      resetForm();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Could not update movie');
-    }
-  };
-
-  const startEdit = (movie) => {
-    setEditingId(movie._id);
+  const handleEdit = (movie) => {
     setForm({
       title: movie.title,
       genre: movie.genre,
@@ -70,102 +50,61 @@ export default function ManageMovies() {
       language: movie.language,
       description: movie.description || '',
     });
+    setEditingId(movie._id);
   };
 
-  const handleDeleteMovie = async (movieId) => {
-    if (!window.confirm('Delete this movie?')) return;
+  const handleDelete = async (id) => {
+    if (!confirm('Delete this movie?')) return;
     try {
-      await api.delete(`/movies/${movieId}`);
-      setMovies((prev) => prev.filter((m) => m._id !== movieId));
+      await api.delete(`/movies/${id}`);
+      loadMovies();
     } catch (err) {
-      setError(err.response?.data?.message || 'Could not delete movie');
+      setError(err.response?.data?.message || 'Delete failed');
     }
   };
 
+  if (loading) return <p>Loading...</p>;
+
   return (
     <div>
-      <form className="card" onSubmit={editingId ? handleUpdateMovie : handleAddMovie}>
-        <h3>{editingId ? 'Edit Movie' : 'Add Movie'}</h3>
+      <h3>{editingId ? 'Edit Movie' : 'Add Movie'}</h3>
+      <form onSubmit={handleSubmit}>
+        <input name="title" placeholder="Title" value={form.title} onChange={handleChange} />
+        <input name="genre" placeholder="Genre" value={form.genre} onChange={handleChange} />
+        <input name="duration" type="number" placeholder="Duration (minutes)" value={form.duration} onChange={handleChange} />
+        <input name="language" placeholder="Language" value={form.language} onChange={handleChange} />
+        <input name="description" placeholder="Description" value={form.description} onChange={handleChange} />
         {error && <p className="error">{error}</p>}
-        <div className="form-row">
-          <label>
-            Title
-            <input
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              required
-            />
-          </label>
-          <label>
-            Genre
-            <input
-              value={form.genre}
-              onChange={(e) => setForm({ ...form, genre: e.target.value })}
-              required
-            />
-          </label>
-        </div>
-        <div className="form-row">
-          <label>
-            Duration (min)
-            <input
-              type="number"
-              min={1}
-              value={form.duration}
-              onChange={(e) => setForm({ ...form, duration: e.target.value })}
-              required
-            />
-          </label>
-          <label>
-            Language
-            <input
-              value={form.language}
-              onChange={(e) => setForm({ ...form, language: e.target.value })}
-              required
-            />
-          </label>
-        </div>
-        <label>
-          Description
-          <textarea
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-          />
-        </label>
-        <div className="form-actions">
-          <button className="btn" type="submit" disabled={loading}>
-            {editingId ? 'Save Changes' : 'Add Movie'}
-          </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button type="submit">{editingId ? 'Update' : 'Add'} Movie</button>
           {editingId && (
-            <button type="button" className="btn btn-secondary" onClick={resetForm}>
+            <button type="button" className="secondary" onClick={() => { setEditingId(null); setForm(emptyForm); }}>
               Cancel
             </button>
           )}
         </div>
       </form>
 
-      <h3>All Movies</h3>
-      {loading && <LoadingSpinner label="Loading movies..." />}
-      <div className="admin-list">
-        {movies.map((movie) => (
-          <div key={movie._id} className="card admin-list-item">
-            <div>
-              <strong>{movie.title}</strong>
-              <p className="muted">
-                {movie.genre} | {movie.language} | {movie.duration} min
-              </p>
-            </div>
-            <div className="form-actions">
-              <button className="btn btn-secondary" onClick={() => startEdit(movie)}>
-                Edit
-              </button>
-              <button className="btn btn-danger" onClick={() => handleDeleteMovie(movie._id)}>
-                Delete
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+      <h3 style={{ marginTop: 24 }}>Existing Movies</h3>
+      <table>
+        <thead>
+          <tr><th>Title</th><th>Genre</th><th>Duration</th><th>Language</th><th></th></tr>
+        </thead>
+        <tbody>
+          {movies.map((m) => (
+            <tr key={m._id}>
+              <td>{m.title}</td>
+              <td>{m.genre}</td>
+              <td>{m.duration} min</td>
+              <td>{m.language}</td>
+              <td>
+                <button className="secondary" onClick={() => handleEdit(m)}>Edit</button>{' '}
+                <button className="danger" onClick={() => handleDelete(m._id)}>Delete</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

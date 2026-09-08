@@ -1,63 +1,23 @@
-import { NavLink, Route, Routes, Navigate } from 'react-router-dom';
-import ManageMovies from './ManageMovies.jsx';
-import ManageShows from './ManageShows.jsx';
-import AllBookings from './AllBookings.jsx';
+import { useState } from 'react';
+import ManageMovies from './ManageMovies';
+import ManageShows from './ManageShows';
+import AllBookings from './AllBookings';
 
 export default function AdminDashboard() {
+  const [tab, setTab] = useState('movies');
+
   return (
-    <div className="page">
+    <div className="container">
       <h2>Admin Dashboard</h2>
-
-      <div className="admin-tabs">
-        <NavLink
-          to="/admin/movies"
-          className={({ isActive }) =>
-            isActive ? 'tab active' : 'tab'
-          }
-        >
-          Movies
-        </NavLink>
-
-        <NavLink
-          to="/admin/shows"
-          className={({ isActive }) =>
-            isActive ? 'tab active' : 'tab'
-          }
-        >
-          Shows
-        </NavLink>
-
-        <NavLink
-          to="/admin/bookings"
-          className={({ isActive }) =>
-            isActive ? 'tab active' : 'tab'
-          }
-        >
-          All Bookings
-        </NavLink>
+      <div className="tabs">
+        <button className={tab === 'movies' ? 'active' : ''} onClick={() => setTab('movies')}>Movies</button>
+        <button className={tab === 'shows' ? 'active' : ''} onClick={() => setTab('shows')}>Shows</button>
+        <button className={tab === 'bookings' ? 'active' : ''} onClick={() => setTab('bookings')}>All Bookings</button>
       </div>
 
-      <Routes>
-        <Route
-          index
-          element={<Navigate to="movies" replace />}
-        />
-
-        <Route
-          path="movies"
-          element={<ManageMovies />}
-        />
-
-        <Route
-          path="shows"
-          element={<ManageShows />}
-        />
-
-        <Route
-          path="bookings"
-          element={<AllBookings />}
-        />
-      </Routes>
+      {tab === 'movies' && <ManageMovies />}
+      {tab === 'shows' && <ManageShows />}
+      {tab === 'bookings' && <AllBookings />}
     </div>
   );
 }

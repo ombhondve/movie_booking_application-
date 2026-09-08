@@ -1,34 +1,27 @@
 import { useEffect, useState } from 'react';
-import api from '../api/axios.js';
-import MovieCard from '../components/MovieCard.jsx';
-import LoadingSpinner from '../components/LoadingSpinner.jsx';
+import api from '../api/axios';
+import MovieCard from '../components/MovieCard';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function MovieList() {
   const [movies, setMovies] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchMovies = async () => {
-      setLoading(true);
-      try {
-        const res = await api.get('/movies');
-        setMovies(res.data);
-      } catch (err) {
-        setError('Could not load movies');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchMovies();
+    api.get('/movies')
+      .then((res) => setMovies(res.data))
+      .catch(() => setError('Failed to load movies'))
+      .finally(() => setLoading(false));
   }, []);
 
+  if (loading) return <LoadingSpinner />;
+
   return (
-    <div className="page">
+    <div className="container">
       <h2>Now Showing</h2>
-      {loading && <LoadingSpinner label="Loading movies..." />}
       {error && <p className="error">{error}</p>}
-      {!loading && !error && movies.length === 0 && <p className="muted">No movies available yet.</p>}
+      {!error && movies.length === 0 && <p>No movies available yet.</p>}
       <div className="grid">
         {movies.map((movie) => (
           <MovieCard key={movie._id} movie={movie} />

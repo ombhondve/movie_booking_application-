@@ -1,138 +1,112 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import api from '../api/axios.js';
-import LoadingSpinner from '../components/LoadingSpinner.jsx';
-import { useAuth } from '../context/AuthContext.jsx';
+import { useParams, useNavigate } from 'react-router-dom';
+import api from '../api/axios';
+import { useAuth } from '../context/AuthContext';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function ShowDetail() {
-  const { movieId } = useParams();
+  const { id } = useParams(); // movie id
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
 
   const [movie, setMovie] = useState(null);
   const [shows, setShows] = useState([]);
+  const [selectedShow, setSelectedShow] = useState(null);
+  const [seats, setSeats] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
-  const [selectedShowId, setSelectedShowId] = useState(null);
-  const [seatCount, setSeatCount] = useState(1);
+  const [success, setSuccess] = useState('');
   const [booking, setBooking] = useState(false);
-  const [bookError, setBookError] = useState('');
-  const [bookSuccess, setBookSuccess] = useState('');
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const res1 = await api.get(`/movies/${movieId}`);
-        setMovie(res1.data);
+    Promise.all([
+      api.get(`/movies/${id}`),
+      api.get(`/shows?movieId=${id}`),
+    ])
+      .then(([movieRes, showsRes]) => {
+        setMovie(movieRes.data);
+        setShows(showsRes.data);
+      })
+      .catch(() => setError('Failed to load show details'))
+      .finally(() => setLoading(false));
+  }, [id]);
 
-        const res = await api.get('/shows', { params: { movieId } });
-        setShows(res.data);
-      } catch (err) {
-        setError('Could not load show details');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [movieId]);
+  const handleBook = async () => {
+    setError('');
+    setSuccess('');
 
-  const selectedShow = shows.find((s) => s._id === selectedShowId);
-
-  const handleBookSeats = async (e) => {
-    e.preventDefault();
-    if (!isAuthenticated) {
+    if (!user) {
       navigate('/login');
       return;
     }
+    if (!selectedShow) {
+      setError('Select a show first');
+      return;
+    }
+
     setBooking(true);
-    setBookError('');
-    setBookSuccess('');
     try {
-      await api.post('/bookings', {
-        showId: selectedShowId,
-        seatsBooked: Number(seatCount),
-      });
-      setBookSuccess('Booking confirmed!');
-      setShows((prev) =>
-        prev.map((s) =>
-          s._id === selectedShowId
-            ? { ...s, availableSeats: s.availableSeats - Number(seatCount) }
-            : s
-        )
-      );
-      setTimeout(() => navigate('/my-bookings'), 800);
+      await api.post('/bookings', { showId: selectedShow._id, seatsBooked: Number(seats) });
+      setSuccess('Booking confirmed!');
+      // refresh show list to reflect updated seat count
+      const res = await api.get(`/shows?movieId=${id}`);
+      setShows(res.data);
+      setSelectedShow(null);
     } catch (err) {
-      setBookError(err.response?.data?.message || 'Booking failed');
+      setError(err.response?.data?.message || 'Booking failed');
     } finally {
       setBooking(false);
     }
   };
 
-  if (loading) return <LoadingSpinner label="Loading show details..." />;
-  if (error) return <p className="error">{error}</p>;
-  if (!movie) return <p className="error">Movie not found</p>;
+  if (loading) return <LoadingSpinner />;
+  if (!movie) return <div className="container"><p className="error">{error || 'Movie not found'}</p></div>;
 
   return (
-    <div className="page">
-      <Link to="/movies" className="back-link">
-        Back to movies
-      </Link>
+    <div className="container">
       <h2>{movie.title}</h2>
-      <p className="muted">
-        {movie.genre} | {movie.language} | {movie.duration} min
-      </p>
-      {movie.description && <p>{movie.description}</p>}
+      <p style={{ opacity: 0.7 }}>{movie.genre} · {movie.language} · {movie.duration} min</p>
+      <p>{movie.description}</p>
 
-      <h3>Available Shows</h3>
-      {shows.length === 0 && <p className="muted">No shows scheduled for this movie yet.</p>}
-      <div className="show-list">
+      <h3>Shows</h3>
+      {shows.length === 0 && <p>No shows scheduled for this movie yet.</p>}
+      <div className="grid">
         {shows.map((show) => (
-          <button
+          <div
             key={show._id}
-            type="button"
-            className={`show-chip ${selectedShowId === show._id ? 'selected' : ''}`}
-            onClick={() => {
-              setSelectedShowId(show._id);
-              setBookError('');
-              setBookSuccess('');
+            className="card"
+            style={{
+              border: selectedShow?._id === show._id ? '2px solid #4f7cff' : undefined,
+              cursor: 'pointer',
             }}
-            disabled={show.availableSeats <= 0}
+            onClick={() => setSelectedShow(show)}
           >
-            <div>{show.date} | {show.time}</div>
-            <div className="muted">{show.theatre}</div>
-            <div className="muted">
-              {show.availableSeats > 0 ? `${show.availableSeats} seats left` : 'Sold out'}
-            </div>
-          </button>
+            <p><strong>{show.theatre}</strong></p>
+            <p>{show.date} at {show.time}</p>
+            <p style={{ opacity: 0.7, fontSize: 14 }}>
+              {show.availableSeats} / {show.totalSeats} seats available
+            </p>
+          </div>
         ))}
       </div>
 
       {selectedShow && (
-        <form className="card booking-form" onSubmit={handleBookSeats}>
-          <h3>Book Seats</h3>
-          <p className="muted">
-            {movie.title} - {selectedShow.date} {selectedShow.time} at {selectedShow.theatre}
-          </p>
-          {bookError && <p className="error">{bookError}</p>}
-          {bookSuccess && <p className="success">{bookSuccess}</p>}
-          <label>
-            Number of seats
-            <input
-              type="number"
-              min={1}
-              max={selectedShow.availableSeats}
-              value={seatCount}
-              onChange={(e) => setSeatCount(e.target.value)}
-              required
-            />
-          </label>
-          <button className="btn" type="submit" disabled={booking || selectedShow.availableSeats <= 0}>
-            {booking ? 'Booking...' : isAuthenticated ? 'Confirm Booking' : 'Login to Book'}
+        <div className="card" style={{ marginTop: 16, maxWidth: 320 }}>
+          <h4>Book: {selectedShow.theatre} — {selectedShow.date} {selectedShow.time}</h4>
+          <label>Number of seats</label>
+          <input
+            type="number"
+            min="1"
+            max={selectedShow.availableSeats}
+            value={seats}
+            onChange={(e) => setSeats(e.target.value)}
+          />
+          {error && <p className="error">{error}</p>}
+          {success && <p style={{ color: '#4ade80' }}>{success}</p>}
+          <button onClick={handleBook} disabled={booking} style={{ marginTop: 10 }}>
+            {booking ? 'Booking...' : user ? 'Confirm Booking' : 'Login to Book'}
           </button>
-        </form>
+        </div>
       )}
     </div>
   );

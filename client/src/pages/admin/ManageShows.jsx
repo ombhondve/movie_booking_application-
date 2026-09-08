@@ -1,76 +1,54 @@
 import { useEffect, useState } from 'react';
-import api from '../../api/axios.js';
-import LoadingSpinner from '../../components/LoadingSpinner.jsx';
+import api from '../../api/axios';
 
 const emptyForm = { movie: '', date: '', time: '', theatre: '', totalSeats: '' };
 
 export default function ManageShows() {
   const [shows, setShows] = useState([]);
   const [movies, setMovies] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [showsRes, moviesRes] = await Promise.all([api.get('/shows'), api.get('/movies')]);
-      setShows(showsRes.data);
-      setMovies(moviesRes.data);
-    } catch (err) {
-      setError('Could not load shows');
-    } finally {
-      setLoading(false);
-    }
+  const loadData = () => {
+    Promise.all([api.get('/shows'), api.get('/movies')])
+      .then(([showsRes, moviesRes]) => {
+        setShows(showsRes.data);
+        setMovies(moviesRes.data);
+      })
+      .catch(() => setError('Failed to load data'));
   };
 
   useEffect(() => {
-    fetchData();
+    loadData();
+    setLoading(false);
   }, []);
 
-  const resetForm = () => {
-    setForm(emptyForm);
-    setEditingId(null);
-  };
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  const handleAddShow = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (!form.movie || !form.date || !form.time || !form.theatre || !form.totalSeats) {
+      setError('All fields are required');
+      return;
+    }
     try {
-      const res = await api.post('/shows', {
-        movie: form.movie,
-        date: form.date,
-        time: form.time,
-        theatre: form.theatre,
-        totalSeats: Number(form.totalSeats),
-      });
-      setShows((prev) => [res.data, ...prev]);
-      resetForm();
+      if (editingId) {
+        await api.put(`/shows/${editingId}`, form);
+      } else {
+        await api.post('/shows', form);
+      }
+      setForm(emptyForm);
+      setEditingId(null);
+      loadData();
     } catch (err) {
-      setError(err.response?.data?.message || 'Could not create show');
+      setError(err.response?.data?.message || 'Save failed');
     }
   };
 
-  const handleUpdateShow = async (e) => {
-    e.preventDefault();
-    setError('');
-    try {
-      const res = await api.put(`/shows/${editingId}`, {
-        date: form.date,
-        time: form.time,
-        theatre: form.theatre,
-        totalSeats: Number(form.totalSeats),
-      });
-      setShows((prev) => prev.map((s) => (s._id === editingId ? res.data : s)));
-      resetForm();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Could not update show');
-    }
-  };
-
-  const startEdit = (show) => {
-    setEditingId(show._id);
+  const handleEdit = (show) => {
     setForm({
       movie: show.movie?._id || show.movie,
       date: show.date,
@@ -78,116 +56,67 @@ export default function ManageShows() {
       theatre: show.theatre,
       totalSeats: show.totalSeats,
     });
+    setEditingId(show._id);
   };
 
-  const handleDeleteShow = async (showId) => {
-    if (!window.confirm('Delete this show?')) return;
+  const handleDelete = async (id) => {
+    if (!confirm('Delete this show?')) return;
     try {
-      await api.delete(`/shows/${showId}`);
-      setShows((prev) => prev.filter((s) => s._id !== showId));
+      await api.delete(`/shows/${id}`);
+      loadData();
     } catch (err) {
-      setError(err.response?.data?.message || 'Could not delete show');
+      setError(err.response?.data?.message || 'Delete failed');
     }
   };
 
+  if (loading) return <p>Loading...</p>;
+
   return (
     <div>
-      <form className="card" onSubmit={editingId ? handleUpdateShow : handleAddShow}>
-        <h3>{editingId ? 'Edit Show' : 'Add Show'}</h3>
+      <h3>{editingId ? 'Edit Show' : 'Add Show'}</h3>
+      <form onSubmit={handleSubmit}>
+        <select name="movie" value={form.movie} onChange={handleChange}>
+          <option value="">Select a movie</option>
+          {movies.map((m) => (
+            <option key={m._id} value={m._id}>{m.title}</option>
+          ))}
+        </select>
+        <input name="date" type="date" value={form.date} onChange={handleChange} />
+        <input name="time" type="time" value={form.time} onChange={handleChange} />
+        <input name="theatre" placeholder="Theatre / Screen" value={form.theatre} onChange={handleChange} />
+        <input name="totalSeats" type="number" placeholder="Total Seats" value={form.totalSeats} onChange={handleChange} />
         {error && <p className="error">{error}</p>}
-        <label>
-          Movie
-          <select
-            value={form.movie}
-            onChange={(e) => setForm({ ...form, movie: e.target.value })}
-            required
-            disabled={!!editingId}
-          >
-            <option value="">Select a movie</option>
-            {movies.map((m) => (
-              <option key={m._id} value={m._id}>
-                {m.title}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="form-row">
-          <label>
-            Date
-            <input
-              type="date"
-              value={form.date}
-              onChange={(e) => setForm({ ...form, date: e.target.value })}
-              required
-            />
-          </label>
-          <label>
-            Time
-            <input
-              type="time"
-              value={form.time}
-              onChange={(e) => setForm({ ...form, time: e.target.value })}
-              required
-            />
-          </label>
-        </div>
-        <div className="form-row">
-          <label>
-            Theatre / Screen
-            <input
-              value={form.theatre}
-              onChange={(e) => setForm({ ...form, theatre: e.target.value })}
-              required
-            />
-          </label>
-          <label>
-            Total Seats
-            <input
-              type="number"
-              min={1}
-              value={form.totalSeats}
-              onChange={(e) => setForm({ ...form, totalSeats: e.target.value })}
-              required
-            />
-          </label>
-        </div>
-        <div className="form-actions">
-          <button className="btn" type="submit">
-            {editingId ? 'Save Changes' : 'Add Show'}
-          </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button type="submit">{editingId ? 'Update' : 'Add'} Show</button>
           {editingId && (
-            <button type="button" className="btn btn-secondary" onClick={resetForm}>
+            <button type="button" className="secondary" onClick={() => { setEditingId(null); setForm(emptyForm); }}>
               Cancel
             </button>
           )}
         </div>
       </form>
 
-      <h3>All Shows</h3>
-      {loading && <LoadingSpinner label="Loading shows..." />}
-      <div className="admin-list">
-        {shows.map((show) => (
-          <div key={show._id} className="card admin-list-item">
-            <div>
-              <strong>{show.movie?.title || 'Unknown movie'}</strong>
-              <p className="muted">
-                {show.date} | {show.time} | {show.theatre}
-              </p>
-              <p className="muted">
-                {show.availableSeats} / {show.totalSeats} seats available
-              </p>
-            </div>
-            <div className="form-actions">
-              <button className="btn btn-secondary" onClick={() => startEdit(show)}>
-                Edit
-              </button>
-              <button className="btn btn-danger" onClick={() => handleDeleteShow(show._id)}>
-                Delete
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+      <h3 style={{ marginTop: 24 }}>Existing Shows</h3>
+      <table>
+        <thead>
+          <tr><th>Movie</th><th>Date</th><th>Time</th><th>Theatre</th><th>Seats</th><th></th></tr>
+        </thead>
+        <tbody>
+          {shows.map((s) => (
+            <tr key={s._id}>
+              <td>{s.movie?.title || '—'}</td>
+              <td>{s.date}</td>
+              <td>{s.time}</td>
+              <td>{s.theatre}</td>
+              <td>{s.availableSeats}/{s.totalSeats}</td>
+              <td>
+                <button className="secondary" onClick={() => handleEdit(s)}>Edit</button>{' '}
+                <button className="danger" onClick={() => handleDelete(s._id)}>Delete</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

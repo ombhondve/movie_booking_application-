@@ -1,8 +1,3 @@
-export default function LoadingSpinner({ label = 'Loading...' }) {
-  return (
-    <div className="spinner-wrap" role="status" aria-live="polite">
-      <div className="spinner" />
-      <span>{label}</span>
-    </div>
-  );
+export default function LoadingSpinner() {
+  return <p style={{ padding: 20, opacity: 0.7 }}>Loading...</p>;
 }

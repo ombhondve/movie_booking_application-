@@ -1,47 +1,35 @@
 import { useEffect, useState } from 'react';
-import api from '../api/axios.js';
-import LoadingSpinner from '../components/LoadingSpinner.jsx';
+import api from '../api/axios';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function MyBookings() {
   const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchMyBookings = async () => {
-      setLoading(true);
-      try {
-        const res = await api.get('/bookings/mine');
-        setBookings(res.data);
-      } catch (err) {
-        setError('Could not load your bookings');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchMyBookings();
+    api.get('/bookings/mine')
+      .then((res) => setBookings(res.data))
+      .catch(() => setError('Failed to load your bookings'))
+      .finally(() => setLoading(false));
   }, []);
 
+  if (loading) return <LoadingSpinner />;
+
   return (
-    <div className="page">
+    <div className="container">
       <h2>My Bookings</h2>
-      {loading && <LoadingSpinner label="Loading your bookings..." />}
       {error && <p className="error">{error}</p>}
-      {!loading && !error && bookings.length === 0 && (
-        <p className="muted">You haven't booked any tickets yet.</p>
-      )}
-      <div className="booking-list">
-        {bookings.map((b) => (
-          <div key={b._id} className="card booking-item">
-            <h3>{b.show?.movie?.title}</h3>
-            <p className="muted">
-              {b.show?.date} | {b.show?.time} | {b.show?.theatre}
-            </p>
-            <p>Seats booked: {b.seatsBooked}</p>
-            <p className={`status status-${b.status}`}>{b.status}</p>
-          </div>
-        ))}
-      </div>
+      {bookings.length === 0 && !error && <p>You haven't booked anything yet.</p>}
+      {bookings.map((b) => (
+        <div className="card" key={b._id}>
+          <p><strong>{b.show?.movie?.title || 'Movie'}</strong></p>
+          <p style={{ fontSize: 14, opacity: 0.7 }}>
+            {b.show?.theatre} · {b.show?.date} {b.show?.time}
+          </p>
+          <p style={{ fontSize: 14 }}>Seats booked: {b.seatsBooked} · Status: {b.status}</p>
+        </div>
+      ))}
     </div>
   );
 }

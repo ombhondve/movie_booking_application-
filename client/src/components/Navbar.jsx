@@ -1,8 +1,8 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext.jsx';
+import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
-  const { user, isAdmin, logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -12,19 +12,18 @@ export default function Navbar() {
 
   return (
     <nav className="navbar">
-      <Link to="/movies" className="brand">
-        Movie Booking
-      </Link>
-      <div className="nav-links">
-        <Link to="/movies">Movies</Link>
-        {user && !isAdmin && <Link to="/my-bookings">My Bookings</Link>}
-        {isAdmin && <Link to="/admin">Admin Dashboard</Link>}
+      <div>
+        <Link to="/">Movies</Link>
+        {user && <Link to="/my-bookings">My Bookings</Link>}
+        {user?.role === 'admin' && <Link to="/admin">Admin</Link>}
+      </div>
+      <div>
         {user ? (
           <>
-            <span className="muted">Hi, {user.name}</span>
-            <button className="btn btn-secondary" onClick={handleLogout}>
-              Logout
-            </button>
+            <span style={{ marginRight: 12, opacity: 0.7 }}>
+              {user.name} ({user.role})
+            </span>
+            <button className="secondary" onClick={handleLogout}>Logout</button>
           </>
         ) : (
           <>
