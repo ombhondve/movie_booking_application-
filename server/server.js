@@ -8,8 +8,11 @@ const authRoutes = require('./routes/auth');
 const movieRoutes = require('./routes/movies');
 const showRoutes = require('./routes/shows');
 const bookingRoutes = require('./routes/bookings');
+const notificationRoutes = require('./routes/notifications');
+const userRoutes = require('./routes/users');
 
 const createAdmin = require('./createAdmin');
+const backfillBookingIds = require('./backfillBookingIds');
 
 const app = express();
 
@@ -20,6 +23,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/movies', movieRoutes);
 app.use('/api/shows', showRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/users', userRoutes);
 
 app.get('/', (req, res) => {
   res.send('Movie Booking API is running');
@@ -34,6 +39,7 @@ mongoose
     console.log('Database:', mongoose.connection.name);
 
     await createAdmin();
+    await backfillBookingIds();
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

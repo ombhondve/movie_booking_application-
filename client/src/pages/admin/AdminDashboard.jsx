@@ -1,37 +1,86 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Film, CalendarClock, Ticket, ArrowUpRight } from 'lucide-react';
+import {
+  Film,
+  CalendarClock,
+  Ticket,
+  ArrowUpRight,
+  CheckCircle2,
+  XCircle,
+  TrendingUp,
+} from 'lucide-react';
 import api from '../../api/axios.js';
+import LoadingSpinner from '../../components/LoadingSpinner.jsx';
 
 export default function AdminDashboard() {
-  const [counts, setCounts] = useState({ movies: 0, shows: 0, bookings: 0 });
+  const [movies, setMovies] = useState([]);
+  const [shows, setShows] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [movies, bookings] = await Promise.all([
+        const [moviesRes, bookingsRes, showsRes] = await Promise.all([
           api.get('/movies'),
           api.get('/bookings/all'),
+          api.get('/shows', { params: { includeCancelled: 'true' } }),
         ]);
-        const showCount = await api.get('/shows');
-        setCounts({
-          movies: movies.data.length,
-          shows: showCount.data.length,
-          bookings: bookings.data.length,
-        });
+        setMovies(moviesRes.data);
+        setBookings(bookingsRes.data);
+        setShows(showsRes.data);
       } catch {
         // dashboard stats are non-critical; fail quietly
+      } finally {
+        setLoading(false);
       }
     };
     load();
   }, []);
 
+  const confirmedCount = useMemo(() => bookings.filter((b) => b.status === 'confirmed').length, [bookings]);
+  const cancelledCount = useMemo(() => bookings.filter((b) => b.status === 'cancelled').length, [bookings]);
+
+  const recentBookings = useMemo(
+    () =>
+      [...bookings]
+        .sort((a, b) => new Date(b.bookingDate) - new Date(a.bookingDate))
+        .slice(0, 5),
+    [bookings]
+  );
+
+  const upcomingShows = useMemo(() => {
+    const now = new Date();
+    return [...shows]
+      .filter((s) => !s.cancelled && new Date(`${s.date}T${s.time}`) >= now)
+      .sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`))
+      .slice(0, 5);
+  }, [shows]);
+
+  const mostBooked = useMemo(() => {
+    const counts = {};
+    bookings
+      .filter((b) => b.status === 'confirmed')
+      .forEach((b) => {
+        const title = b.show?.movie?.title;
+        if (!title) return;
+        counts[title] = (counts[title] || 0) + (b.seatsBooked || b.seatNumbers?.length || 1);
+      });
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+  }, [bookings]);
+
   const cards = [
-    { label: 'Movies', value: counts.movies, icon: Film, to: '/admin/movies' },
-    { label: 'Scheduled shows', value: counts.shows, icon: CalendarClock, to: '/admin/shows' },
-    { label: 'Bookings made', value: counts.bookings, icon: Ticket, to: '/admin/bookings' },
+    { label: 'Total Movies', value: movies.length, icon: Film, to: '/admin/movies' },
+    { label: 'Total Shows', value: shows.length, icon: CalendarClock, to: '/admin/shows' },
+    { label: 'Total Bookings', value: bookings.length, icon: Ticket, to: '/admin/bookings' },
+    { label: 'Confirmed Bookings', value: confirmedCount, icon: CheckCircle2, to: '/admin/bookings' },
+    { label: 'Cancelled Bookings', value: cancelledCount, icon: XCircle, to: '/admin/bookings' },
   ];
+
+  if (loading) return <LoadingSpinner fullscreen label="Crunching the numbers…" />;
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
@@ -64,6 +113,63 @@ export default function AdminDashboard() {
             </Link>
           </motion.div>
         ))}
+      </div>
+
+      <div className="mt-10 grid gap-5 lg:grid-cols-3">
+        <div className="rounded-xl border border-ink-line bg-ink-raised p-5">
+          <h2 className="mb-4 text-sm uppercase tracking-wide text-smoke">Recent Bookings</h2>
+          {recentBookings.length === 0 ? (
+            <p className="text-sm text-smoke">No bookings yet.</p>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {recentBookings.map((b) => (
+                <li key={b._id} className="text-sm">
+                  <p className="text-paper">{b.show?.movie?.title || 'Unknown'}</p>
+                  <p className="text-xs text-smoke">
+                    {b.user?.name || 'Unknown user'} · {b.status}
+                    {b.bookingId ? ` · ${b.bookingId}` : ''}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-ink-line bg-ink-raised p-5">
+          <h2 className="mb-4 text-sm uppercase tracking-wide text-smoke">Upcoming Shows</h2>
+          {upcomingShows.length === 0 ? (
+            <p className="text-sm text-smoke">Nothing scheduled.</p>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {upcomingShows.map((s) => (
+                <li key={s._id} className="text-sm">
+                  <p className="text-paper">{s.movie?.title || 'Unknown'}</p>
+                  <p className="text-xs text-smoke">
+                    {s.date} · {s.time} · {s.theatre}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-ink-line bg-ink-raised p-5">
+          <h2 className="mb-4 flex items-center gap-1.5 text-sm uppercase tracking-wide text-smoke">
+            <TrendingUp size={14} /> Most Booked Movies
+          </h2>
+          {mostBooked.length === 0 ? (
+            <p className="text-sm text-smoke">No bookings yet.</p>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {mostBooked.map(([title, seats]) => (
+                <li key={title} className="flex items-center justify-between text-sm">
+                  <span className="text-paper">{title}</span>
+                  <span className="text-xs text-smoke">{seats} seats</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </div>
   );

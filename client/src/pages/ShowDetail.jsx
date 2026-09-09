@@ -240,16 +240,21 @@ export default function ShowDetail() {
                 <span className="h-3 w-3 rounded-sm bg-marquee" /> Selected
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded-sm bg-ink-line" /> Taken
+                <span className="h-3 w-3 rounded-sm bg-ink-line" /> Booked
               </span>
             </div>
 
             <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-ink-line pt-6 sm:flex-row">
-              <p className="text-sm text-smoke">
-                {selectedSeats.length > 0
-                  ? `${selectedSeats.length} seat${selectedSeats.length > 1 ? 's' : ''} selected: ${selectedSeats.join(', ')}`
-                  : 'Tap seats above to select them.'}
-              </p>
+              <div className="text-sm text-smoke">
+                {selectedSeats.length > 0 ? (
+                  <>
+                    <p>Selected seats: {selectedSeats.join(', ')}</p>
+                    <p>Total seats: {selectedSeats.length}</p>
+                  </>
+                ) : (
+                  <p>Tap seats above to select them.</p>
+                )}
+              </div>
               <button
                 onClick={handleBook}
                 disabled={selectedSeats.length === 0 || booking}

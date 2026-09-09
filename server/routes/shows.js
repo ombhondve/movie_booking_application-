@@ -2,6 +2,7 @@ const express = require('express');
 const Show = require('../models/Show');
 const Booking = require('../models/Booking');
 const { authMiddleware, isAdmin } = require('../middleware/auth');
+const { createNotification } = require('../utils/notify');
 
 const router = express.Router();
 
@@ -123,9 +124,23 @@ router.put('/:id/cancel', authMiddleware, isAdmin, async (req, res) => {
     show.cancelled = true;
     await show.save();
 
+    const affectedBookings = await Booking.find({ show: show._id, status: 'confirmed' });
+
     const result = await Booking.updateMany(
       { show: show._id, status: 'confirmed' },
       { $set: { status: 'cancelled', cancelledBy: 'admin' } }
+    );
+
+    await Promise.all(
+      affectedBookings.map((b) =>
+        createNotification({
+          user: b.user,
+          message: 'Your show has been cancelled by the admin.',
+          type: 'show_cancelled',
+          relatedBooking: b._id,
+          relatedShow: show._id,
+        })
+      )
     );
 
     res.json({
@@ -178,6 +193,8 @@ router.put('/:id/reschedule', authMiddleware, isAdmin, async (req, res) => {
     show.time = time;
     await show.save();
 
+    const affectedBookings = await Booking.find({ show: show._id, status: 'confirmed' });
+
     const result = await Booking.updateMany(
       { show: show._id, status: 'confirmed' },
       {
@@ -187,6 +204,18 @@ router.put('/:id/reschedule', authMiddleware, isAdmin, async (req, res) => {
           previousShowTime: previousTime,
         },
       }
+    );
+
+    await Promise.all(
+      affectedBookings.map((b) =>
+        createNotification({
+          user: b.user,
+          message: `Your show has been rescheduled from ${previousDate} ${previousTime} to ${date} ${time}.`,
+          type: 'show_rescheduled',
+          relatedBooking: b._id,
+          relatedShow: show._id,
+        })
+      )
     );
 
     res.json({
