@@ -12,9 +12,7 @@ const STATUS_STYLES = {
 };
 
 function statusLabel(b) {
-  if (b.status === 'cancelled') {
-    return b.cancelledBy === 'admin' ? 'Cancelled by admin' : 'Cancelled';
-  }
+  if (b.status === 'cancelled') return 'Cancelled';
   return 'Confirmed';
 }
 

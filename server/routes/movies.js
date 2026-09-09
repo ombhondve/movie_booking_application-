@@ -1,13 +1,29 @@
 const express = require('express');
 const Movie = require('../models/Movie');
+const Show = require('../models/Show');
 const { authMiddleware, isAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
 // GET /api/movies — public, list all
+// Excludes movies whose every scheduled show has been cancelled by the admin,
+// so a cancelled-out movie disappears from "Now Showing". A movie with no
+// shows scheduled yet (or with at least one active show) still appears.
 router.get('/', async (req, res) => {
   try {
-    const movies = await Movie.find().sort({ createdAt: -1 });
+    const showCounts = await Show.aggregate([
+      {
+        $group: {
+          _id: '$movie',
+          total: { $sum: 1 },
+          cancelled: { $sum: { $cond: ['$cancelled', 1, 0] } },
+        },
+      },
+      { $match: { $expr: { $eq: ['$total', '$cancelled'] } } },
+    ]);
+    const fullyCancelledMovieIds = showCounts.map((s) => s._id);
+
+    const movies = await Movie.find({ _id: { $nin: fullyCancelledMovieIds } }).sort({ createdAt: -1 });
     res.json(movies);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
