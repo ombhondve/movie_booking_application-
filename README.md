@@ -1,276 +1,438 @@
-# Movie Booking Application — Setup & Run Guide
+# 🎬 Movie Booking Application
 
-This guide covers everything needed to get the project running locally on
-Windows/macOS/Linux, including the new features (booking cancellation,
-booking IDs, digital tickets, notifications, profile, watchlist, admin
-analytics, and search/filter).
+A full-stack movie booking application built using:
+
+- React
+- Node.js
+- Express.js
+- MongoDB
+- Mongoose
 
 ---
 
-## 1. Project structure
+## ✨ Features
 
+### 👤 User
+
+- Register and login
+- Browse movies
+- Search movies
+- Filter movies by genre and language
+- View movie details
+- Select seats
+- Book tickets
+- View booking history
+- View seat numbers
+- View booking ID
+- View digital ticket
+- Cancel booking
+- Receive notifications
+- Manage profile
+- Add movies to watchlist
+
+### 👑 Admin
+
+- Admin login
+- Admin dashboard
+- Manage movies
+- Manage shows
+- View all bookings
+- Search and filter bookings
+- Cancel shows
+- Reschedule shows
+- View booking statistics
+
+---
+
+## 🚀 Getting Started
+
+Follow the steps below to run the project on your computer.
+
+### 1. Install Required Software
+
+Before starting, install:
+- [Node.js](https://nodejs.org/) — version 18 or higher
+- Git
+- MongoDB Atlas account or local MongoDB
+
+Check if Node.js and Git are installed:
+
+```bash
+node -v
+npm -v
+git --version
 ```
-movie_booking_application-/
-├── client/                  React + Vite frontend
-│   ├── src/
-│   │   ├── api/axios.js
-│   │   ├── components/
-│   │   ├── context/AuthContext.jsx
-│   │   ├── pages/
-│   │   │   └── admin/
-│   │   ├── App.jsx
-│   │   └── main.jsx
-│   ├── .env.example
-│   └── package.json
-└── server/                  Express + MongoDB (Mongoose) backend
-    ├── models/
-    ├── routes/
-    ├── utils/
-    ├── middleware/auth.js
-    ├── createAdmin.js
-    ├── backfillBookingIds.js
-    ├── server.js
-    ├── env.example
-    └── package.json
+*If these commands show version numbers, you are ready.*
+
+### 2. Download the Project
+
+Open Command Prompt / PowerShell / Terminal and run:
+
+```bash
+git clone https://github.com/ombhondve/movie_booking_application-.git
 ```
 
----
+Then enter the project:
 
-## 2. Prerequisites
+```bash
+cd movie_booking_application-
+```
 
-| Tool | Version | Check with |
-|---|---|---|
-| Node.js | 18+ (20+ recommended) | `node -v` |
-| npm | comes with Node | `npm -v` |
-| MongoDB | Atlas (cloud) **or** local MongoDB | — |
-| Git | any recent version | `git --version` |
+The project contains two main parts:
 
-You do **not** need MongoDB installed locally if you use a free
-[MongoDB Atlas](https://www.mongodb.com/cloud/atlas/register) cluster —
-that's what `server/env.example` is set up for by default.
+```text
+movie_booking_application-
+│
+├── client/    → Frontend (React)
+│
+└── server/    → Backend (Node.js + Express)
+```
+*You need to run both parts.*
 
----
+### 3. Set Up MongoDB
 
-## 3. Backend setup (`server/`)
+The easiest option is MongoDB Atlas.
+1. Create a MongoDB Atlas account and create a database.
+2. You will need your MongoDB connection string. It looks similar to:
+   ```text
+   mongodb+srv://username:password@cluster.mongodb.net/movieBookingDB
+   ```
+3. Also make sure your IP address is allowed in MongoDB Atlas:
+   `MongoDB Atlas → Network Access → Add IP Address`
 
-### 3.1 Install dependencies
+### 4. Set Up the Backend
 
-```powershell
-cd "D:\New folder\movie_booking_application-\server"
+Open a terminal and go to the backend:
+
+```bash
+cd server
+```
+
+Install the backend packages:
+
+```bash
 npm install
 ```
 
-### 3.2 Create your `.env` file
+Create the `.env` file.
 
-Copy the example and fill in real values:
-
-```powershell
+**Windows:**
+```cmd
 copy env.example .env
 ```
 
-Edit `server/.env`:
+**macOS / Linux:**
+```bash
+cp env.example .env
+```
+
+Now open `server/.env` and add your settings:
 
 ```env
 PORT=5000
-
-# Your MongoDB connection string (Atlas or local)
-MONGO_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/movieBookingDB?appName=MovieBookingDB
-
-# Any long random string — used to sign login tokens
-JWT_SECRET=replace_with_a_long_random_secret
-
-# Seeds one admin account automatically on first server startup
-ADMIN_EMAIL=admin@example.com
-ADMIN_PASSWORD=ChangeThisPassword123
+MONGO_URI=YOUR_MONGODB_CONNECTION_STRING
+JWT_SECRET=YOUR_SECRET_KEY
+ADMIN_EMAIL=admin@gmail.com
+ADMIN_PASSWORD=YourStrongPassword123
 ```
+*Replace `YOUR_MONGODB_CONNECTION_STRING` and `YOUR_SECRET_KEY` with your actual values.*
 
-> If you use a **local** MongoDB instead of Atlas, use something like
-> `MONGO_URI=mongodb://127.0.0.1:27017/movieBookingDB` and make sure
-> `mongod` is running first.
+> ⚠️ **Important:** Never upload your `.env` file to GitHub.
 
-### 3.3 Confirm every backend file exists
+### 5. Start the Backend
 
-The new features added these files on top of the original project. Before
-starting the server, verify each one is present and matches what was given
-to you (a single missing/misplaced file will crash the server on boot):
+Make sure you are inside the `server` folder:
 
-| File | Status |
-|---|---|
-| `server/models/Booking.js` | modified — has `bookingId` field |
-| `server/models/User.js` | modified — has `watchlist` field |
-| `server/models/Notification.js` | **new** |
-| `server/routes/bookings.js` | modified — generates `bookingId`, sends cancel notification |
-| `server/routes/shows.js` | modified — sends cancel/reschedule notifications |
-| `server/routes/notifications.js` | **new** |
-| `server/routes/users.js` | **new** |
-| `server/utils/notify.js` | **new** |
-| `server/backfillBookingIds.js` | **new** |
-| `server/server.js` | modified — wires up the new routes |
-
-Quick check (PowerShell, from `server/`):
-
-```powershell
-dir models\Notification.js, routes\notifications.js, routes\users.js, utils\notify.js, backfillBookingIds.js
-```
-
-If any of these report "Cannot find path", that file is missing — go back
-and create it before continuing.
-
-### 3.4 Start the backend
-
-```powershell
+```bash
 npm run dev
 ```
 
-Expected output:
-
-```
-[nodemon] starting `node server.js`
+You should see something similar to:
+```text
 MongoDB connected
 Database: movieBookingDB
-Admin created successfully!        (only on first run)
-Admin email: admin@example.com
-Admin role: admin
 Server running on port 5000
 ```
+*Keep this terminal open.*
 
-Leave this terminal window running. The API is now live at
-`http://localhost:5000/api`.
+**Test the Backend:**
+Open your browser and visit: `http://localhost:5000/`
+You should see: `Movie Booking API is running`
 
-**Sanity check:** open `http://localhost:5000/` in a browser — you should
-see `Movie Booking API is running`.
+### 6. Set Up the Frontend
 
----
+Open a **new** terminal. Go to the frontend:
 
-## 4. Frontend setup (`client/`)
+```bash
+cd client
+```
 
-Open a **second** terminal window (keep the backend running in the first).
+Install the frontend packages:
 
-### 4.1 Install dependencies
-
-```powershell
-cd "D:\New folder\movie_booking_application-\client"
+```bash
 npm install
 ```
 
-### 4.2 Create your `.env` file
+Create the `.env` file.
 
-```powershell
+**Windows:**
+```cmd
 copy .env.example .env
 ```
 
-`client/.env` should contain:
+**macOS / Linux:**
+```bash
+cp .env.example .env
+```
+
+Open `client/.env` and make sure it contains:
 
 ```env
 VITE_API_URL=http://localhost:5000/api
 ```
 
-### 4.3 Confirm every frontend file exists
+### 7. Start the Frontend
 
-| File | Status |
-|---|---|
-| `client/src/components/Modal.jsx` | **new** |
-| `client/src/components/TicketView.jsx` | **new** |
-| `client/src/pages/Profile.jsx` | **new** |
-| `client/src/pages/Watchlist.jsx` | **new** |
-| `client/src/components/MovieCard.jsx` | modified — watchlist heart button |
-| `client/src/components/Navbar.jsx` | modified — notification bell, Watchlist/Profile links |
-| `client/src/pages/MovieList.jsx` | modified — search + genre/language filters |
-| `client/src/pages/MyBookings.jsx` | modified — cancel button, ticket modal, booking ID |
-| `client/src/pages/ShowDetail.jsx` | modified — seat legend/count wording |
-| `client/src/pages/admin/AdminDashboard.jsx` | modified — analytics |
-| `client/src/pages/admin/AllBookings.jsx` | modified — search/filter, booking ID column |
-| `client/src/App.jsx` | modified — routes for `/watchlist` and `/profile` |
+Inside the `client` folder, run:
 
-```powershell
-dir src\components\Modal.jsx, src\components\TicketView.jsx, src\pages\Profile.jsx, src\pages\Watchlist.jsx
-```
-
-### 4.4 Start the frontend
-
-```powershell
+```bash
 npm run dev
 ```
 
-Expected output:
-
+You should see something similar to:
+```text
+VITE ready
+Local: http://localhost:5173/
 ```
-  VITE v5.x.x  ready in ... ms
-  ➜  Local:   http://localhost:5173/
+
+Open the URL shown in the terminal. Usually it is `http://localhost:5173`.
+🎉 **Your application is now running.**
+
+---
+
+## 📖 Usage Guide
+
+### 👑 8. Login as Admin
+The application creates the admin account using the values from `server/.env`.
+For example:
+```env
+ADMIN_EMAIL=admin@gmail.com
+ADMIN_PASSWORD=YourStrongPassword123
+```
+Use these credentials to log in as admin.
+
+### 🎬 9. Add Your First Movie
+After logging in as admin:
+`Admin → Manage Movies → Add Movie`
+Enter the movie information and save it.
+
+### 🕐 10. Create a Show
+Go to: `Admin → Manage Shows → Add Show`
+Select: Movie, Date, Time, Theatre / Screen, Seats. 
+Save the show.
+
+### 👤 11. Create a User Account
+Log out from the admin account. Click **Sign Up**. Create a normal user account and log in.
+
+### 🎟️ 12. Book a Movie
+As a normal user:
+`Now Showing → Select Movie → Select Show → Select Seats → Book Ticket`
+
+After booking, open **My Bookings**. You can see:
+Movie, Date, Time, Seat numbers, Booking ID, Booking status, and Digital ticket.
+
+### ❌ 13. Cancel a Booking
+Go to **My Bookings**. Select your booking and click **Cancel Booking**.
+Confirm the cancellation. The booking will be marked as *Cancelled* and the seats will become available again.
+
+### 🔄 14. Reschedule a Show
+*Only an admin can reschedule a show.*
+Go to: `Admin → Manage Shows → Reschedule`
+Select the new date and time and confirm. Users who already booked the show will see the updated schedule.
+
+### 🚫 15. Cancel a Show
+*Only an admin can cancel a show.*
+Go to: `Admin → Manage Shows → Cancel`
+Confirm the cancellation. The show will be marked as cancelled. Users who booked the show will be notified. A cancelled show cannot receive new bookings.
+
+### ❤️ 16. Watchlist
+Users can add movies to their watchlist using the heart button `♡`.
+Open **My Watchlist** to see saved movies.
+
+### 🔔 17. Notifications
+Users can receive notifications when:
+- A booking is cancelled
+- A show is cancelled
+- A show is rescheduled
+
+Click the notification bell to view notifications.
+
+### 👤 18. Profile
+Users can open **Profile** to view and manage their account information.
+
+### 📊 19. Admin Dashboard
+Admins can open **Admin Dashboard**. The dashboard provides information about:
+Movies, Shows, Bookings, Confirmed bookings, Cancelled bookings, Upcoming shows, Recent bookings, and Popular movies.
+
+### 🔎 20. Search and Filter Movies
+Users can search for movies from the movie listing page. Movies can also be filtered by Genre and Language.
+
+### 📋 21. View All Bookings
+Admins can open: `Admin → All Bookings`
+Admins can view booking information such as Booking ID, User, Movie, Seats, Status, and Date. Bookings can also be searched and filtered.
+
+---
+
+## 📁 Project Structure
+
+```text
+movie_booking_application-
+│
+├── client/
+│   ├── src/
+│   │   ├── api/
+│   │   ├── components/
+│   │   ├── context/
+│   │   ├── pages/
+│   │   │   └── admin/
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   │
+│   ├── .env.example
+│   └── package.json
+│
+├── server/
+│   ├── models/
+│   ├── routes/
+│   ├── middleware/
+│   ├── utils/
+│   ├── server.js
+│   ├── .env.example
+│   └── package.json
+│
+└── README.md
 ```
 
-Open `http://localhost:5173` in your browser.
+---
+
+## ⚠️ Troubleshooting
+
+**❌ MongoDB connection error**
+- Check `server/.env`. Make sure your `MONGO_URI` is correct.
+- If you use MongoDB Atlas, also check: `MongoDB Atlas → Network Access → IP Address`.
+
+**❌ Frontend cannot connect to backend**
+- Make sure the backend is running (`cd server` -> `npm run dev`).
+- Then check `client/.env`. It should contain `VITE_API_URL=http://localhost:5000/api`.
+- After changing `.env`, restart the frontend.
+
+**❌ Booking.find is not a function**
+- This usually means there is a problem with the Booking Mongoose model.
+- Check `server/models/Booking.js` and files that import `Booking`. Make sure the Booking model is exported and imported correctly.
+
+**❌ Blank frontend page**
+- Check Backend is running.
+- Check Frontend is running.
+- Check `client/.env` is correct.
+- Open browser Developer Tools: Check the Console for errors, check the Network tab for failed API requests.
+
+**❌ Port 5000 already in use**
+- Change the backend port in `server/.env` (e.g., `PORT=5001`).
+- Then change the frontend API URL in `client/.env` to: `VITE_API_URL=http://localhost:5001/api`.
+- Restart both servers.
+
+**❌ Port 5173 already in use**
+- Vite normally selects another available port. Use the URL displayed in your terminal.
 
 ---
 
-## 5. First-time usage
+## 🔐 Security
 
-1. **Log in as admin** using the `ADMIN_EMAIL` / `ADMIN_PASSWORD` you set in
-   `server/.env`.
-2. Go to **Admin → Manage Movies** and add a movie.
-3. Go to **Admin → Manage Shows** and schedule a show for that movie.
-4. **Register a normal user account** (or log out and use "Sign up").
-5. As that user: browse **Now Showing**, open the movie, pick seats, and
-   book. You'll get a booking ID, and can view a digital ticket or cancel
-   the booking from **My Bookings**.
-6. Try the **heart icon** on a movie card to add it to your **Watchlist**.
-7. As admin, cancel or reschedule that show — the user should see a
-   notification (bell icon, top right) and an update on **My Bookings**.
+Never share your `.env` file. It may contain:
+- MongoDB username/password
+- JWT secret
+- Admin password
+- API keys
+
+Use `.env.example` when sharing the project.
 
 ---
 
-## 6. Common problems & fixes
+## 💻 Useful Commands
 
-### `Cannot find module './routes/notifications'` (or similar)
-A required file is missing on disk. Check section 3.3 above and create the
-missing file with the exact content you were given — nothing needs to be
-installed via npm for this, they're plain project files.
+### Backend (Run from `server/`)
+- Install packages: `npm install`
+- Start development server: `npm run dev`
+- Start server normally: `npm start`
 
-### Two `module.exports` in one file / router doesn't work
-If you accidentally pasted a Mongoose **schema** (`models/Booking.js`
-content) into a **route** file (`routes/bookings.js`), the file will have
-two `module.exports` statements and only the last one wins. Each file
-should contain only what its name says: `models/*.js` files define
-schemas, `routes/*.js` files define Express routers. Re-copy each file's
-content into its own correct path.
-
-### `MongoDB connection error`
-- Double-check `MONGO_URI` in `server/.env` — no angle brackets `<...>`
-  should remain, and your Atlas user's password must not contain characters
-  that need URL-encoding (or encode them, e.g. `@` → `%40`).
-- If using Atlas, confirm your current IP is allow-listed under
-  **Network Access** in the Atlas dashboard.
-
-### Frontend loads but API calls fail / blank pages (e.g. Watchlist)
-- Confirm the backend terminal shows no errors and is still running.
-- Open the browser DevTools → Network tab, click the broken feature, and
-  check the failing request's status code and response body.
-- Confirm `client/.env` points to the correct backend port
-  (`VITE_API_URL=http://localhost:5000/api`).
-- If a page is blank with no network errors at all, the route/import in
-  `client/src/App.jsx` is likely missing — see section 4.3.
-
-### Port already in use
-- Backend: change `PORT` in `server/.env`, then update
-  `VITE_API_URL` in `client/.env` to match.
-- Frontend: Vite will automatically offer the next free port if `5173` is
-  taken.
-
-### Notification bell shows nothing / stays at 0
-Notifications are created only when: a user cancels their own booking, an
-admin cancels a show, or an admin reschedules a show. Booking a seat by
-itself does not create a notification — that's expected.
+### Frontend (Run from `client/`)
+- Install packages: `npm install`
+- Start development server: `npm run dev`
+- Build the application: `npm run build`
+- Preview the production build: `npm run preview`
 
 ---
 
-## 7. Useful commands reference
+## 🔄 Running the Project After Setup
 
-| Action | Command | Run from |
-|---|---|---|
-| Install backend deps | `npm install` | `server/` |
-| Run backend (auto-restart) | `npm run dev` | `server/` |
-| Run backend (no auto-restart) | `npm start` | `server/` |
-| Install frontend deps | `npm install` | `client/` |
-| Run frontend dev server | `npm run dev` | `client/` |
-| Build frontend for production | `npm run build` | `client/` |
-| Preview production build | `npm run preview` | `client/` |
+After the first setup, you only need two terminals.
+
+**Terminal 1 — Backend**
+```bash
+cd server
+npm run dev
+```
+
+**Terminal 2 — Frontend**
+```bash
+cd client
+npm run dev
+```
+
+Then open: `http://localhost:5173`
+
+---
+
+## 🎯 Application Flow
+
+```text
+                    MOVIE BOOKING APP
+                           │
+              ┌────────────┴────────────┐
+              │                         │
+             USER                      ADMIN
+              │                         │
+        Browse Movies             Dashboard
+              │                         │
+         Select Show             Manage Movies
+              │                         │
+         Select Seats             Manage Shows
+              │                         │
+           Booking              All Bookings
+              │
+         My Bookings
+              │
+       ┌──────┼──────┐
+       │      │      │
+     Ticket Cancel  Status
+                      │
+               Notifications
+```
+
+---
+
+## ✅ Final Checklist
+
+Before using the application, make sure:
+
+- [x] Node.js is installed
+- [x] Git is installed
+- [x] MongoDB is configured
+- [x] `server/.env` is created
+- [x] `client/.env` is created
+- [x] Backend dependencies are installed
+- [x] Frontend dependencies are installed
+- [x] MongoDB is connected
+- [x] Backend is running
+- [x] Frontend is running
+- [x] Admin account is available
